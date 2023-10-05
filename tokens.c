@@ -1,6 +1,8 @@
 #include "tokens.h"
 #include <stdlib.h>
 
+static const char* mps_operators = "+-*/^";
+
 mps_token mps_make_token(const char* str) {
     mps_token token = empty_token;
 
@@ -41,10 +43,21 @@ mps_token mps_make_token(const char* str) {
             token.func = (mps_functions)i;
             return token;
         }
-    
+
+    //check for number
+    {
+        char* endp;
+        double val = strtod(str, &endp);
+        if(endp != str) {
+            token.type = constant;
+            token.val = val;
+            return token;
+        }
+    }
 
     //if none of the above then probably a variable
     token.type = variable;
     strcpy(token.var_name, str);
     return token;
 }
+
