@@ -16,25 +16,25 @@ void mps_display_token(mps_token token) {
     printf("type: %s, ", mps_token_type_names[token.type]);
     switch (token.type)
     {
-    case constant:
+    case tok_constant:
         printf("val = %f\n", token.val);
         break;
-    case variable:
+    case tok_variable:
         printf("var_name: %s\n", token.var_name);
         break;
-    case operation:
+    case tok_operation:
         printf("'%c'\n", token.op);
         break;
-    case function:
+    case tok_function:
         printf("func: %s\n", mps_func_names[token.func]);
         break;
-    case openbracket:
+    case tok_openbracket:
         printf("'('\n");
         break;
-    case closebracket:
+    case tok_closebracket:
         printf("')'\n");
         break;
-    case comma:
+    case tok_comma:
         printf("','\n");
         break;
     default:

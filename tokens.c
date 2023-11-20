@@ -18,7 +18,7 @@ mps_token mps_make_token(const char* str, unsigned char candidates) {
     if(length == 1) {
         char* pos = strchr(mps_operators, str[0]);
         if(pos != NULL) {
-            token.type = operation;
+            token.type = tok_operation;
             token.op = *pos;
 
             return token;
@@ -26,24 +26,24 @@ mps_token mps_make_token(const char* str, unsigned char candidates) {
 
         switch(*str){
             case '(':
-                token.type = openbracket;
+                token.type = tok_openbracket;
                 break;
             case ')':
-                token.type = closebracket;
+                token.type = tok_closebracket;
                 break;
             case ',':
-                token.type = comma;
+                token.type = tok_comma;
                 break;
         }
 
-        if(token.type != empty)
+        if(token.type != tok_empty)
             return token;
     }
 
     //check for functions
     for(int i = 0; i < mps_func_num; i++) 
         if(strcmp(str, mps_func_names[i]) == 0) {
-            token.type = function;
+            token.type = tok_function;
             token.func = (mps_functions)i;
             return token;
         }
@@ -53,14 +53,14 @@ mps_token mps_make_token(const char* str, unsigned char candidates) {
         char* endp;
         double val = strtod(str, &endp);
         if(endp != str) {
-            token.type = constant;
+            token.type = tok_constant;
             token.val = val;
             return token;
         }
     }
 
     //if none of the above then probably a variable
-    token.type = variable;
+    token.type = tok_variable;
     strcpy(token.var_name, str);
     return token;
 }

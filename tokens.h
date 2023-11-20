@@ -16,14 +16,14 @@
 
 
 typedef enum mps_token_type {
-    empty,
-    constant,
-    variable,
-    operation,
-    function,
-    openbracket,
-    closebracket,
-    comma
+    tok_empty,
+    tok_constant,
+    tok_variable,
+    tok_operation,
+    tok_function,
+    tok_openbracket,
+    tok_closebracket,
+    tok_comma
 } mps_token_type;
 
 typedef enum mps_functions {
