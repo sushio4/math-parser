@@ -2,13 +2,22 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-//declares vector of TYPE with name vector_TYPE and defines functions for it
-#define vector(TYPE) \
+//only declares vector and functions
+#define declare_vector(TYPE) \
 typedef struct vector_##TYPE {                          \
     TYPE* ptr;                                          \
     unsigned int size;                                  \
     unsigned int capacity;                              \
 }vector_##TYPE;                                         \
+                                                        \
+vector_##TYPE new_vector_##TYPE (); \
+void vector_##TYPE##_resize(vector_##TYPE* vec, unsigned int size); \
+void vector_##TYPE##_push(vector_##TYPE* vec, TYPE e); \
+TYPE vector_##TYPE##_pop(vector_##TYPE* vec); \
+bool vector_##TYPE##_at(vector_##TYPE* vec, unsigned int index, TYPE* dest);
+
+//defines functions for vector_TYPE
+#define define_vector(TYPE) \
                                                         \
 vector_##TYPE new_vector_##TYPE () {                    \
     vector_##TYPE vec;                                  \
@@ -17,10 +26,10 @@ vector_##TYPE new_vector_##TYPE () {                    \
     return vec;                                         \
 }                                                       \
                                                         \
-void resize(vector_##TYPE* vec, unsigned int size) {    \
+void vector_##TYPE##_resize(vector_##TYPE* vec, unsigned int size) {    \
     if(size <= vec->capacity) return;                   \
                                                         \
-    TYPE* ptr = malloc(size * sizeof(TYPE));            \
+    TYPE* ptr = (TYPE*)malloc(size * sizeof(TYPE));            \
     for(int i = 0; i < vec->size; i++)                  \
         ptr[i] = vec->ptr[i];                           \
                                                         \
@@ -29,20 +38,20 @@ void resize(vector_##TYPE* vec, unsigned int size) {    \
     vec->ptr = ptr;                                     \
 }\
 \
-void push(vector_##TYPE* vec, TYPE e) {                 \
+void vector_##TYPE##_push(vector_##TYPE* vec, TYPE e) {                 \
     if(vec->size == vec->capacity) {                    \
-        if(vec->size == 0) resize(vec, 2);              \
-        else resize(vec, vec->size*2);                  \
+        if(vec->size == 0) vector_##TYPE##_resize(vec, 2);              \
+        else vector_##TYPE##_resize(vec, vec->size*2);                  \
     }                                                   \
                                                         \
     vec->ptr[vec->size++] = e;                          \
 }\
 \
-TYPE pop(vector_##TYPE* vec) {                          \
+TYPE vector_##TYPE##_pop(vector_##TYPE* vec) {                          \
     return vec->ptr[--vec->size];                       \
 }\
 \
-bool at(vector_##TYPE* vec, unsigned int index, TYPE* dest) {\
+bool vector_##TYPE##_at(vector_##TYPE* vec, unsigned int index, TYPE* dest) {\
     if(index >= vec->size) return false;                \
     *dest = vec->ptr[index];                            \
     return true;                                        \
