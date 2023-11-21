@@ -41,3 +41,32 @@ void mps_display_token(mps_token token) {
         break;
     }
 }
+
+void mps_display_token_less(mps_token token) {
+    switch (token.type)
+    {
+    case tok_constant:
+        printf("%f", token.val);
+        break;
+    case tok_variable:
+        printf("%s", token.var_name);
+        break;
+    case tok_operation:
+        printf("%c", token.op);
+        break;
+    case tok_function:
+        printf("%s", mps_func_names[token.func]);
+        break;
+    case tok_openbracket:
+        printf("(");
+        break;
+    case tok_closebracket:
+        printf(")");
+        break;
+    case tok_comma:
+        printf(",");
+        break;
+    default:
+        break;
+    }
+}

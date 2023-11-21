@@ -14,7 +14,8 @@ vector_##TYPE new_vector_##TYPE (); \
 void vector_##TYPE##_resize(vector_##TYPE* vec, unsigned int size); \
 void vector_##TYPE##_push(vector_##TYPE* vec, TYPE e); \
 TYPE vector_##TYPE##_pop(vector_##TYPE* vec); \
-bool vector_##TYPE##_at(vector_##TYPE* vec, unsigned int index, TYPE* dest);
+bool vector_##TYPE##_at(vector_##TYPE* vec, unsigned int index, TYPE* dest); \
+void vector_##TYPE##_delete(vector_##TYPE* vec);
 
 //defines functions for vector_TYPE
 #define define_vector(TYPE) \
@@ -55,4 +56,9 @@ bool vector_##TYPE##_at(vector_##TYPE* vec, unsigned int index, TYPE* dest) {\
     if(index >= vec->size) return false;                \
     *dest = vec->ptr[index];                            \
     return true;                                        \
+}\
+\
+void vector_##TYPE##_delete(vector_##TYPE* vec) { \
+    free(vec->ptr);                                     \
+    vec->size = vec->capacity = 0;                      \
 }
