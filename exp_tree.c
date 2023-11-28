@@ -1,5 +1,7 @@
 #include "exp_tree.h"
 
+define_vector(mps_exp_node)
+
 int mps_get_precedence(char operator) {
     switch(operator) {
         case ',':
@@ -16,7 +18,7 @@ int mps_get_precedence(char operator) {
 }
 
 //ptr is the pointer to the first open bracket and backref is for saving where it ends
-mps_exp_node *parse_bracket_exp(const mps_token *ptr, const mps_token** back_ref)
+mps_exp_node* parse_bracket_exp(const mps_token *ptr, const mps_token** back_ref, mps_ast* ast)
 {
     int brack_count = 1;
 
@@ -31,10 +33,10 @@ mps_exp_node *parse_bracket_exp(const mps_token *ptr, const mps_token** back_ref
     }
 
     *back_ref = --back;
-    return mps_make_node(front, back);
+    return mps_make_node(front, back, ast);
 }
 
-mps_exp_node* mps_make_node(const mps_token* begin, const mps_token* end) {
+mps_exp_node* mps_make_node(const mps_token* begin, const mps_token* end, mps_ast* ast) {
     mps_exp_node* current = NULL;
     mps_exp_node* root = NULL;
 
@@ -45,7 +47,8 @@ mps_exp_node* mps_make_node(const mps_token* begin, const mps_token* end) {
 
         if(ptr->type == tok_openbracket) {
             const mps_token* back;
-            new_node = parse_bracket_exp(ptr, &back);
+            new_node = parse_bracket_exp(ptr, &back, ast);
+
             ptr = back;
 
             if(!current) {
@@ -60,10 +63,11 @@ mps_exp_node* mps_make_node(const mps_token* begin, const mps_token* end) {
             }
         }
         else {
-            new_node = malloc(sizeof(mps_exp_node));
+            new_node = (ast->data.ptr + ast->data.size);
+            vector_mps_exp_node_push(&ast->data, mps_empty_exp_node);
             new_node->lhs = 
                 new_node->rhs = 
-                new_node->parent = 0;
+                new_node->parent = NULL;
             new_node->token = *ptr;
             
             if(ptr->type == tok_comma) {
@@ -87,7 +91,7 @@ mps_exp_node* mps_make_node(const mps_token* begin, const mps_token* end) {
             }
             else if(ptr->type == tok_function) {
                 const mps_token* back;
-                mps_exp_node* child = parse_bracket_exp(ptr + 1, &back);
+                mps_exp_node* child = parse_bracket_exp(ptr + 1, &back, ast);
                 ptr = back;
                 child->parent = new_node;
                 new_node->lhs = child;
@@ -106,6 +110,7 @@ mps_exp_node* mps_make_node(const mps_token* begin, const mps_token* end) {
 
                 if(current->token.type != tok_operation) {
                     new_node->lhs = current;
+                    current->parent = new_node;
                     current = root = new_node;
 
                     continue;
@@ -120,6 +125,8 @@ mps_exp_node* mps_make_node(const mps_token* begin, const mps_token* end) {
                     */
                     if(!current->rhs) {
                         current->rhs = new_node;
+                        new_node->parent = current;
+
                         continue;
                     }
                     new_node->lhs = current->rhs;
@@ -143,17 +150,20 @@ mps_exp_node* mps_make_node(const mps_token* begin, const mps_token* end) {
                     while(current->parent && mps_get_precedence(new_node->token.op) <= mps_get_precedence(current->parent->token.op)) {
                         current = current->parent;
                     }
+
                     if(current->parent) {
                         current->parent->rhs = new_node;
+                        new_node->parent = current->parent;
                     }
                     else {
                         new_node->lhs = current;
+                        current->parent = new_node;
                         root = new_node;
                     }
                     current = new_node;
                 }
             } else {
-                free(new_node);
+                return NULL;
             }
         }
     }
@@ -161,38 +171,32 @@ mps_exp_node* mps_make_node(const mps_token* begin, const mps_token* end) {
     return root;
 }
 
-mps_exp_node* mps_make_tree(const vector_mps_token* vec) {
-    return mps_make_node(vec->ptr, vec->ptr + vec->size);
-}
-
-define_vector(mps_exp_node_ptr)
-
-void mps_delete_tree(mps_exp_node* tree) {
-    vector_mps_exp_node_ptr vec = new_vector_mps_exp_node_ptr();
-    if(tree == NULL) return;
-    vector_mps_exp_node_ptr_push(&vec, tree);
-    //traverse the tree and save all the pointers to the vector
-    //those keep track of which nodes save the lhs/rhs pointers
-    int i0 = 0, i1 = 1;
-    bool loop = true;
-    while(loop) {
-        //save ptr of all children if not null
-        int count = 0;
-        for(int i = i0; i < i1; i++){
-            if(vec.ptr[i]->lhs){
-                vector_mps_exp_node_ptr_push(&vec, vec.ptr[i]->lhs);
-                count++;
-            }
-            if(vec.ptr[i]->rhs){
-                vector_mps_exp_node_ptr_push(&vec, vec.ptr[i]->rhs);
-                count++;
-            }
-            //delete the parent
-            free(vec.ptr[i]);
-        }
-        i0 = i1;
-        i1 += count;
-        loop = (count != 0);
+int mps_make_tree(const vector_mps_token* vec, mps_ast* ast) {
+    int exp_tokens = 0;
+    for(mps_token* ptr = vec->ptr; ptr < (vec->ptr + vec->size); ptr++) {
+        if(ptr->type != tok_openbracket && 
+           ptr->type != tok_closebracket &&
+           ptr->type != tok_empty)
+            exp_tokens++;
     }
-    vector_mps_exp_node_ptr_delete(&vec);
+    
+    ast->data = new_vector_mps_exp_node();
+    vector_mps_exp_node_resize(&ast->data, exp_tokens);
+    mps_make_node(vec->ptr, vec->ptr + vec->size, ast);
+
+    //calculate depth
+    ast->depth = 1;
+    mps_exp_node* ptr = ast->data.ptr + (ast->data.size - 1);
+    while(ptr != ast->data.ptr) {
+        //printf("%d\n", (unsigned int)((char*)ptr - (char*)ast->data.ptr) / sizeof(mps_exp_node));
+        ptr = ptr->parent;
+        ast->depth++;
+    }
+
+    return 0;
 }
+
+void mps_delete_tree(mps_ast* tree) {
+    vector_mps_exp_node_delete(&(tree->data));
+}
+
