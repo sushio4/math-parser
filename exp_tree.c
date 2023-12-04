@@ -88,6 +88,12 @@ mps_exp_node* mps_make_node(const mps_token* begin, const mps_token* end, mps_as
                     current->rhs = new_node;
                 else 
                     current->lhs = new_node;
+                //check if there was unary minus before
+                if(current->token.type == tok_operation && current->token.op == '-' &&
+                   current->parent && current->parent->token.type == tok_operation) {
+
+                    current = current->parent;
+                }
             }
             else if(ptr->type == tok_function) {
                 const mps_token* back;
@@ -105,7 +111,10 @@ mps_exp_node* mps_make_node(const mps_token* begin, const mps_token* end, mps_as
             else if(new_node->token.type == tok_operation) {
                 //check for unary minus
                 if(ptr->op == '-' && current->token.type == tok_operation && current->rhs == NULL) {
-                    current->lhs = new_node;
+                    current->rhs = new_node;
+                    new_node->parent = current;
+                    current = new_node;
+                    continue;
                 }
 
                 if(current->token.type != tok_operation) {
