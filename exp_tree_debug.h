@@ -12,6 +12,9 @@ void mps_display_tree(mps_ast* tree) {
     for(mps_exp_node* ptr = tree->data.ptr; ptr < (tree->data.ptr + tree->data.size); ptr++) {
         printf("Index: %d\n", ptr_to_index(tree, ptr));
         mps_display_token(ptr->token);
-        printf("Parent i: %d\n\n", ptr_to_index(tree, ptr->parent));
+        printf("Parent i: %d\nLhs i: %d\nRhs i: %d\n\n", 
+            ptr_to_index(tree, ptr->parent) < tree->data.size ? ptr_to_index(tree, ptr->parent) : -1,
+            ptr_to_index(tree, ptr->lhs) < tree->data.size ? ptr_to_index(tree, ptr->lhs) : -1,
+            ptr_to_index(tree, ptr->rhs) < tree->data.size ? ptr_to_index(tree, ptr->rhs) : -1);
     }
 }

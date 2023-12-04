@@ -104,7 +104,7 @@ mps_exp_node* mps_make_node(const mps_token* begin, const mps_token* end, mps_as
             }
             else if(new_node->token.type == tok_operation) {
                 //check for unary minus
-                if(ptr->op == '-' && current->token.type == tok_operation) {
+                if(ptr->op == '-' && current->token.type == tok_operation && current->rhs == NULL) {
                     current->lhs = new_node;
                 }
 
@@ -185,13 +185,13 @@ int mps_make_tree(const vector_mps_token* vec, mps_ast* ast) {
     mps_make_node(vec->ptr, vec->ptr + vec->size, ast);
 
     //calculate depth
-    ast->depth = 1;
-    mps_exp_node* ptr = ast->data.ptr + (ast->data.size - 1);
-    while(ptr != ast->data.ptr) {
-        //printf("%d\n", (unsigned int)((char*)ptr - (char*)ast->data.ptr) / sizeof(mps_exp_node));
-        ptr = ptr->parent;
-        ast->depth++;
-    }
+    //ast->depth = 1;
+    //mps_exp_node* ptr = ast->data.ptr + (ast->data.size - 1);
+    //while(ptr != ast->data.ptr) {
+    //    //printf("%d\n", (unsigned int)((char*)ptr - (char*)ast->data.ptr) / sizeof(mps_exp_node));
+    //    ptr = ptr->parent;
+    //    ast->depth++;
+    //}
 
     return 0;
 }

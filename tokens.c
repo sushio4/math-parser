@@ -89,7 +89,7 @@ int mps_tokenize(const char* str, vector_mps_token* token_vector) {
                 continue;
             }
 
-            if(*ptr == ' ') {
+            if(strchr(" \n\0", *ptr) != NULL) {
                 tok_start_ptr++;
                 continue;
             }
@@ -123,7 +123,7 @@ int mps_tokenize(const char* str, vector_mps_token* token_vector) {
             goto make_token;
         }
 
-        if(*(ptr+1) == '\0') {
+        if(strchr(" \n\0", *(ptr+1)) != NULL) {
             if(ptr - tok_start_ptr > MAX_TOKEN_STR_SIZE) return 0;
 
             goto make_token;

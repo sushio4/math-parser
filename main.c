@@ -3,18 +3,22 @@
 #include "evaluator.h"
 
 int main() {
-    char* tokens = "tan(x*2 + pow(3,x) * sin(x*x/2))";
-    printf("Input: %s\n\n", tokens);
-    
+    char *tokens = NULL;
+    long unsigned int size = 0;
+    printf("Enter your equation: ");
+    getline(&tokens, &size, stdin);
+
     vector_mps_token vec = new_vector_mps_token();
     mps_tokenize(tokens, &vec);
 
+    free(tokens);
+
     mps_ast tree;
     mps_make_tree(&vec, &tree);
-    mps_display_tree(&tree);
+    //mps_display_tree(&tree);
 
     int varc = mps_get_var_count(&tree);
-    printf("Variable amount: %d\n", varc);
+    //printf("Variable amount: %d\n", varc);
     mps_variable* vars = malloc(sizeof(mps_variable) * varc);
 
     if(mps_get_variables(&tree, vars, varc))
@@ -25,7 +29,7 @@ int main() {
         scanf("%lf", &vars[i].value);
     }
 
-
+    printf("Result: %lf\n", mps_eval(&tree, varc, vars));
 
     mps_delete_tree(&tree);
     vector_mps_token_delete(&vec);
