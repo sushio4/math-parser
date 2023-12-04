@@ -27,11 +27,11 @@ typedef enum mps_token_type {
 } mps_token_type;
 
 typedef enum mps_functions {
-    sqrt,
-    sin,
-    cos,
-    tan,
-    pow
+    func_sqrt,
+    func_sin,
+    func_cos,
+    func_tan,
+    func_pow
 } mps_functions;
 
 static const char* mps_func_names[] = {

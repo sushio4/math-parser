@@ -123,6 +123,12 @@ int mps_tokenize(const char* str, vector_mps_token* token_vector) {
             goto make_token;
         }
 
+        if(*(ptr+1) == '\0') {
+            if(ptr - tok_start_ptr > MAX_TOKEN_STR_SIZE) return 0;
+
+            goto make_token;
+        }
+
         continue;
 
     make_token:
