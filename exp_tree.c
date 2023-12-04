@@ -39,6 +39,7 @@ mps_exp_node* parse_bracket_exp(const mps_token *ptr, const mps_token** back_ref
 mps_exp_node* mps_make_node(const mps_token* begin, const mps_token* end, mps_ast* ast) {
     mps_exp_node* current = NULL;
     mps_exp_node* root = NULL;
+    bool in_brackets = false;
 
     for(const mps_token* ptr = begin; ptr < end; ptr++) {
         mps_exp_node* new_node;
@@ -53,6 +54,7 @@ mps_exp_node* mps_make_node(const mps_token* begin, const mps_token* end, mps_as
 
             if(!current) {
                 root = current = new_node;
+                in_brackets = true;
             }
             else {
                 new_node->parent = current;
@@ -61,119 +63,129 @@ mps_exp_node* mps_make_node(const mps_token* begin, const mps_token* end, mps_as
                 else 
                     current->lhs = new_node;
             }
+            continue;
         }
-        else {
-            new_node = (ast->data.ptr + ast->data.size);
-            vector_mps_exp_node_push(&ast->data, mps_empty_exp_node);
-            new_node->lhs = 
-                new_node->rhs = 
-                new_node->parent = NULL;
-            new_node->token = *ptr;
-            
-            if(ptr->type == tok_comma) {
-                new_node->token.type = tok_operation;
-                new_node->token.op = ',';
-            }
 
-            if(!current) {
-                root = current = new_node;
+        new_node = (ast->data.ptr + ast->data.size);
+        vector_mps_exp_node_push(&ast->data, mps_empty_exp_node);
+        new_node->lhs = 
+            new_node->rhs = 
+            new_node->parent = NULL;
+        new_node->token = *ptr;
+        
+        if(ptr->type == tok_comma) {
+            new_node->token.type = tok_operation;
+            new_node->token.op = ',';
+        }
+
+        if(!current) {
+            root = current = new_node;
+            continue;
+        }
+
+        if(ptr->type == tok_variable ||
+            ptr->type == tok_constant) {
+            //it's one of the arguments of an operator (or function)
+            new_node->parent = current;
+            if(current->lhs) 
+                current->rhs = new_node;
+            else 
+                current->lhs = new_node;
+            //check if there was unary minus before
+            if(current->token.type == tok_operation && current->token.op == '-' &&
+                current->parent && current->parent->token.type == tok_operation) {
+
+                current = current->parent;
+            }
+        }
+        else if(ptr->type == tok_function) {
+            const mps_token* back;
+            mps_exp_node* child = parse_bracket_exp(ptr + 1, &back, ast);
+            ptr = back;
+            child->parent = new_node;
+            new_node->lhs = child;
+
+            new_node->parent = current;
+            if(current->lhs) 
+                current->rhs = new_node;
+            else 
+                current->lhs = new_node;                
+        }
+        else if(new_node->token.type == tok_operation) {
+            //check for unary minus
+            if(ptr->op == '-' && current->token.type == tok_operation && current->rhs == NULL) {
+                current->rhs = new_node;
+                new_node->parent = current;
+                current = new_node;
                 continue;
             }
 
-            if(ptr->type == tok_variable ||
-                ptr->type == tok_constant) {
-                //it's one of the arguments of an operator (or function)
-                new_node->parent = current;
-                if(current->lhs) 
-                    current->rhs = new_node;
-                else 
-                    current->lhs = new_node;
-                //check if there was unary minus before
-                if(current->token.type == tok_operation && current->token.op == '-' &&
-                   current->parent && current->parent->token.type == tok_operation) {
+            if(in_brackets) {
+                new_node->lhs = current;
+                current->parent = new_node;
+                root = current = new_node;
+                root->parent = NULL;
+                in_brackets = false;
 
+                continue;
+            } 
+
+            if(current->token.type != tok_operation) {
+                new_node->lhs = current;
+                current->parent = new_node;
+                current = root = new_node;
+
+                continue;
+            }
+
+            //check precedence 
+            if(mps_get_precedence(new_node->token.op) > mps_get_precedence(current->token.op)) {
+                /*structure:
+                    current
+                    |   |
+                    |   new_node
+                */
+                if(!current->rhs) {
+                    current->rhs = new_node;
+                    new_node->parent = current;
+
+                    continue;
+                }
+                new_node->lhs = current->rhs;
+                current->rhs->parent = new_node;
+                
+                new_node->parent = current;
+                current->rhs = new_node;
+
+                current = new_node;
+            }
+            else { 
+                /*structure:        less precedence op (new current->parent)
+                    new_node    or      |          |
+                    |                  ...      new_node
+                    ...                 |
+                    |                current
+                    current
+                    |   |
+                */
+                //go up in the tree
+                while(current->parent && mps_get_precedence(new_node->token.op) <= mps_get_precedence(current->parent->token.op)) {
                     current = current->parent;
                 }
-            }
-            else if(ptr->type == tok_function) {
-                const mps_token* back;
-                mps_exp_node* child = parse_bracket_exp(ptr + 1, &back, ast);
-                ptr = back;
-                child->parent = new_node;
-                new_node->lhs = child;
 
-                new_node->parent = current;
-                if(current->lhs) 
-                    current->rhs = new_node;
-                else 
-                    current->lhs = new_node;                
-            }
-            else if(new_node->token.type == tok_operation) {
-                //check for unary minus
-                if(ptr->op == '-' && current->token.type == tok_operation && current->rhs == NULL) {
-                    current->rhs = new_node;
-                    new_node->parent = current;
-                    current = new_node;
-                    continue;
+                if(current->parent) {
+                    current->parent->rhs = new_node;
+                    new_node->parent = current->parent;
                 }
-
-                if(current->token.type != tok_operation) {
+                else {
                     new_node->lhs = current;
                     current->parent = new_node;
-                    current = root = new_node;
-
-                    continue;
+                    root = new_node;
                 }
- 
-                //check precedence 
-                if(mps_get_precedence(new_node->token.op) > mps_get_precedence(current->token.op)) {
-                    /*structure:
-                        current
-                        |   |
-                        |   new_node
-                    */
-                    if(!current->rhs) {
-                        current->rhs = new_node;
-                        new_node->parent = current;
-
-                        continue;
-                    }
-                    new_node->lhs = current->rhs;
-                    current->rhs->parent = new_node;
-                    
-                    new_node->parent = current;
-                    current->rhs = new_node;
-
-                    current = new_node;
-                }
-                else { 
-                    /*structure:        less precedence op (new current->parent)
-                        new_node    or      |          |
-                        |                  ...      new_node
-                        ...                 |
-                        |                current
-                        current
-                        |   |
-                    */
-                    //go up in the tree
-                    while(current->parent && mps_get_precedence(new_node->token.op) <= mps_get_precedence(current->parent->token.op)) {
-                        current = current->parent;
-                    }
-
-                    if(current->parent) {
-                        current->parent->rhs = new_node;
-                        new_node->parent = current->parent;
-                    }
-                    else {
-                        new_node->lhs = current;
-                        current->parent = new_node;
-                        root = new_node;
-                    }
-                    current = new_node;
-                }
-            } else {
-                return NULL;
+                current = new_node;
             }
+        } else {
+            return NULL;
         }
     }
 
