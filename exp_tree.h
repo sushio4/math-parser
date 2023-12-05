@@ -16,6 +16,7 @@ declare_vector(mps_exp_node)
 typedef struct mps_ast {
     int depth;
     vector_mps_exp_node data;
+    mps_exp_node* root;
 } mps_ast;
 
 int mps_make_tree(const vector_mps_token* vec, mps_ast* ast);

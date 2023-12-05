@@ -1,5 +1,9 @@
 #include "exp_tree.h"
 
+static inline int max(int a, int b) {
+    return a > b ? a : b;
+}
+
 define_vector(mps_exp_node)
 
 int mps_get_precedence(char operator) {
@@ -15,6 +19,20 @@ int mps_get_precedence(char operator) {
         default:
             return 4;
     }
+}
+
+int mps_get_depth(const mps_exp_node* node, int prev_depth) {
+    prev_depth++;
+    int ldepth = 0, rdepth = 0;
+    
+    if(!node->lhs && !node->rhs)
+        return prev_depth;
+
+    if(node->lhs)
+        ldepth = mps_get_depth(node->lhs, prev_depth);
+    if(node->rhs)
+        rdepth = mps_get_depth(node->rhs, prev_depth);
+    return max(ldepth, rdepth);
 }
 
 //ptr is the pointer to the first open bracket and backref is for saving where it ends
@@ -203,21 +221,16 @@ int mps_make_tree(const vector_mps_token* vec, mps_ast* ast) {
     
     ast->data = new_vector_mps_exp_node();
     vector_mps_exp_node_resize(&ast->data, exp_tokens);
-    mps_make_node(vec->ptr, vec->ptr + vec->size, ast);
+    ast->root = mps_make_node(vec->ptr, vec->ptr + vec->size, ast);
 
-    //calculate depth
-    //ast->depth = 1;
-    //mps_exp_node* ptr = ast->data.ptr + (ast->data.size - 1);
-    //while(ptr != ast->data.ptr) {
-    //    //printf("%d\n", (unsigned int)((char*)ptr - (char*)ast->data.ptr) / sizeof(mps_exp_node));
-    //    ptr = ptr->parent;
-    //    ast->depth++;
-    //}
+    ast->depth = mps_get_depth(ast->root, 0);
 
     return 0;
 }
 
 void mps_delete_tree(mps_ast* tree) {
     vector_mps_exp_node_delete(&(tree->data));
+    tree->root = NULL;
+    tree->depth = 0;
 }
 

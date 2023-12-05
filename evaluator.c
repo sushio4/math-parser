@@ -124,14 +124,3 @@ double mps_eval_helper(const mps_exp_node* ptr, int var_count, mps_variable* var
 
     return NAN;
 }
-
-double mps_eval(const mps_ast* tree, int var_count, mps_variable* vars) {
-    for(mps_exp_node* ptr = tree->data.ptr; 
-        ptr < (tree->data.ptr + tree->data.size);
-        ptr++) {
-        
-        if(!ptr->parent)
-            return mps_eval_helper(ptr, var_count, vars);
-    }
-    return NAN;
-}

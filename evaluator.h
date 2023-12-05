@@ -11,5 +11,9 @@ int mps_get_var_count(const mps_ast* tree);
 //returns 0 on success
 int mps_get_variables(const mps_ast* tree, mps_variable* vars, int max_vars);
 
+double mps_eval_helper(const mps_exp_node* ptr, int var_count, mps_variable* vars);
+
 //evaluates whole tree when given variables, returns NaN of failure
-double mps_eval(const mps_ast* tree, int var_count, mps_variable* vars);
+static inline double mps_eval(const mps_ast* tree, int var_count, mps_variable* vars) {
+    return mps_eval_helper(tree->root, var_count, vars);
+}
